@@ -72,8 +72,10 @@ public class BanBO {
 
         if (userEntity.getGameHardwareHash() != null) {
             HardwareInfoEntity hardwareInfoEntity = hardwareInfoDAO.findByHardwareHash(userEntity.getGameHardwareHash());
-            hardwareInfoEntity.setBanned(false);
-            hardwareInfoDAO.update(hardwareInfoEntity);
+            if (hardwareInfoEntity != null) {
+                hardwareInfoEntity.setBanned(false);
+                hardwareInfoDAO.update(hardwareInfoEntity);
+            }
         }
         banEntity.setActive(false);
         banDAO.update(banEntity);

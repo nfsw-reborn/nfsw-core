@@ -50,7 +50,11 @@ public class TokenSessionBO {
     private final Map<String, TokenSessionEntity> sessionKeyToTokenMap = new ConcurrentHashMap<>();
     private final Map<Long, String> userIdToSessionKeyMap = new ConcurrentHashMap<>();
 
+    @Lock(LockType.WRITE)
     public String createToken(UserEntity userEntity, String clientHostName) {
+        // A permanent-session request may carry a detached pre-edit UserEntity.
+        userEntity = userDAO.find(userEntity.getId());
+        if (userEntity == null || userEntity.isLocked()) throw new NotAuthorizedException("Account locked");
         Date expirationDate = getMinutes(parameterBO.getIntParam("SESSION_LENGTH_MINUTES", 130));
         String randomUUID = UUID.randomUUID().toString();
         TokenSessionEntity tokenSessionEntity = new TokenSessionEntity();
@@ -109,6 +113,7 @@ public class TokenSessionBO {
         }
     }
 
+    @Lock(LockType.WRITE)
     public LoginStatusVO login(String email, String password, HttpServletRequest httpRequest) {
         LoginStatusVO loginStatusVO = new LoginStatusVO(0L, "", false);
 
@@ -186,6 +191,31 @@ public class TokenSessionBO {
     public void setRelayCryptoTicket(TokenSessionEntity tokenSessionEntity, String relayCryptoTicket) {
         Objects.requireNonNull(tokenSessionEntity);
         tokenSessionEntity.setRelayCryptoTicket(relayCryptoTicket);
+    }
+
+    @EJB private com.soapboxrace.core.bo.admin.AdminMutationBO adminMutations;
+
+    public java.util.List<java.util.Map<String, Object>> adminSessionSummary() {
+        java.util.List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
+        for (TokenSessionEntity session : sessionKeyToTokenMap.values()) {
+            if (session.getExpirationDate().after(new Date())) {
+                java.util.Map<String, Object> item = new java.util.LinkedHashMap<>();
+                item.put("userId", session.getUserEntity().getId());
+                item.put("personaId", session.getActivePersonaId());
+                item.put("expiresAt", session.getExpirationDate().getTime());
+                result.add(item);
+            }
+        }
+        return result;
+    }
+
+    @Lock(LockType.WRITE)
+    public String runAdminCommand(Long userId, com.soapboxrace.core.bo.admin.AdminCommand command) {
+        TokenSessionEntity active = findByUserId(userId);
+        if (active != null && active.getExpirationDate().after(new Date())) {
+            throw new com.soapboxrace.core.bo.admin.AdminPanelException(409);
+        }
+        return adminMutations.apply(userId, command);
     }
 
     private Date getMinutes(int minutes) {
