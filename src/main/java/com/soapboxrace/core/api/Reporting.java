@@ -9,7 +9,6 @@ package com.soapboxrace.core.api;
 import com.soapboxrace.core.api.util.Secured;
 import com.soapboxrace.core.bo.HardwareInfoBO;
 import com.soapboxrace.core.bo.RequestSessionInfo;
-import com.soapboxrace.core.bo.TokenSessionBO;
 import com.soapboxrace.core.dao.UserDAO;
 import com.soapboxrace.core.jpa.HardwareInfoEntity;
 import com.soapboxrace.core.jpa.UserEntity;
@@ -29,9 +28,6 @@ public class Reporting {
     private HardwareInfoBO hardwareInfoBO;
 
     @EJB
-    private TokenSessionBO tokenBO;
-
-    @EJB
     private UserDAO userDAO;
 
     @Inject
@@ -43,14 +39,12 @@ public class Reporting {
     @Produces(MediaType.APPLICATION_XML)
     public String sendHardwareInfo(InputStream is) {
         HardwareInfo hardwareInfo = JAXBUtility.unMarshal(is, HardwareInfo.class);
-        if (hardwareInfo.getCpuid0().equals("GenuineIntel") || hardwareInfo.getCpuid0().equals("AuthenticAMD")) {
-            HardwareInfoEntity hardwareInfoEntity = hardwareInfoBO.save(hardwareInfo);
-            UserEntity user = requestSessionInfo.getUser();
-            user.setGameHardwareHash(hardwareInfoEntity.getHardwareHash());
-            userDAO.update(user);
-        } else {
-            tokenBO.deleteByUserId(requestSessionInfo.getUser().getId());
-        }
+        // CPU vendor is telemetry, not proof of identity. Windows ARM emulation
+        // can report another vendor while the authenticated game session is valid.
+        HardwareInfoEntity hardwareInfoEntity = hardwareInfoBO.save(hardwareInfo);
+        UserEntity user = requestSessionInfo.getUser();
+        user.setGameHardwareHash(hardwareInfoEntity.getHardwareHash());
+        userDAO.update(user);
         return "";
     }
 
