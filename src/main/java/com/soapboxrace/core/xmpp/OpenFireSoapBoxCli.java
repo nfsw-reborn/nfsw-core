@@ -13,6 +13,7 @@ import javax.ejb.*;
 
 @Startup
 @Singleton
+@DependsOn("OpenFireRestApiCli")
 public class OpenFireSoapBoxCli {
 
     @EJB

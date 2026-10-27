@@ -122,22 +122,9 @@ public class OpenFireRestApiCli {
         if (!restApiEnabled) {
             return new ArrayList<>();
         }
-        Builder builder = getBuilder("chatrooms/forUser",
-                Map.of(
-                        "userName", "sbrw." + personaId,
-                        "domain", xmppIp,
-                        "resource", "EA-Chat"));
-        MUCRoomEntities roomEntities = builder.get(MUCRoomEntities.class);
-        List<MUCRoomEntity> listRoomEntity = roomEntities.getMucRooms();
-        for (MUCRoomEntity entity : listRoomEntity) {
-            String roomName = entity.getRoomName();
-            if (roomName.contains("group.channel.")) {
-                // FIXME: apparently we need to make the request TWICE, first one will always fail for some reason
-                getAllOccupantsInRoom(roomName);
-                return getAllOccupantsInRoom(roomName);
-            }
-        }
-        return new ArrayList<>();
+        Builder builder = getBuilder("chatrooms/game/persona/" + personaId + "/group");
+        GamePersonaGroup group = builder.get(GamePersonaGroup.class);
+        return group.getMembers();
     }
 
     public List<Long> getAllOccupantsInRoom(String roomName) {

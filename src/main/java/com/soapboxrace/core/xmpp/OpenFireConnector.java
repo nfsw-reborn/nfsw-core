@@ -121,6 +121,7 @@ public class OpenFireConnector {
                     .setUsernameAndPassword("sbrw.engine.engine", this.engineToken)
                     .setResource("EA_Chat")
                     .setXmppDomain(this.ipAddress)
+                    .setHost(parameterBO.getStrParam("XMPP_CONNECT_HOST", this.ipAddress))
                     .setPort(this.port)
                     .setCustomX509TrustManager(getX509TrustManager())
                     .setHostnameVerifier((hostname, session) -> true);
