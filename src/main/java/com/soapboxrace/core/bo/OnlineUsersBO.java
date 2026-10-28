@@ -40,13 +40,14 @@ public class OnlineUsersBO {
     }
 
     @Schedule(minute = "*", hour = "*", persistent = false)
+    @Lock(LockType.WRITE)
     public void insertOnlineStats() {
         long timeLong = new Date().getTime() / 1000L;
         OnlineUsersEntity onlineUsersEntity = new OnlineUsersEntity();
         onlineUsersEntity.setNumberOfOnline(openFireRestApiCli.getTotalOnlineUsers());
         onlineUsersEntity.setNumberOfRegistered(userDAO.countUsers());
         onlineUsersEntity.setTimeRecord((int) timeLong);
-        onlineUsersDAO.insert(onlineUsersEntity);
+        onlineUsersDAO.saveSnapshot(onlineUsersEntity);
         lastRecordedStats = onlineUsersEntity;
     }
 }

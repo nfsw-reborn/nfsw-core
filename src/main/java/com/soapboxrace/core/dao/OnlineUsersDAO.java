@@ -21,6 +21,18 @@ public class OnlineUsersDAO extends LongKeyedDAO<OnlineUsersEntity> {
         super(OnlineUsersEntity.class);
     }
 
+    public void saveSnapshot(OnlineUsersEntity snapshot) {
+        // Startup and scheduled sampling can share the same second. Treat that
+        // timestamp as one snapshot, including across application restarts.
+        entityManager.createNativeQuery("INSERT INTO online_users (ID, numberOfOnline, numberOfRegistered) " +
+                "VALUES (:time, :online, :registered) ON DUPLICATE KEY UPDATE " +
+                "numberOfOnline=VALUES(numberOfOnline), numberOfRegistered=VALUES(numberOfRegistered)")
+                .setParameter("time", snapshot.getTimeRecord())
+                .setParameter("online", snapshot.getNumberOfOnline())
+                .setParameter("registered", snapshot.getNumberOfRegistered())
+                .executeUpdate();
+    }
+
     public OnlineUsersEntity findByTime(Date time) {
         long timeLong = time.getTime() / 1000L;
 
